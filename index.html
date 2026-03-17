@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MultiSport">
+<meta name="theme-color" content="#0d0d0f">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>MultiSport Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0d0f;
+  --surface: #16161a;
+  --surface2: #1e1e24;
+  --border: #2a2a32;
+  --accent: #c8f135;
+  --accent2: #35d4f1;
+  --accent3: #f1a135;
+  --text: #f0f0f0;
+  --muted: #666;
+  --danger: #f14444;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  overscroll-behavior: none;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+}
+
+/* ---- SCREENS ---- */
+.screen { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+.screen.active { display: flex; }
+
+/* ---- HEADER ---- */
+header {
+  background: var(--bg);
+  padding: 16px 20px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+.logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px;
+  letter-spacing: 2px;
+  color: var(--accent);
+}
+.logo span { color: var(--text); opacity: 0.5; }
+.month-nav { display: flex; align-items: center; gap: 10px; }
+.month-nav button {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.month-nav button:active { background: var(--border); transform: scale(0.93); }
+.month-label {
+  font-size: 13px; font-weight: 500;
+  color: var(--muted);
+  min-width: 96px; text-align: center;
+}
+
+/* ---- SCROLL AREA ---- */
+.scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 90px;
+}
+
+/* ---- SCOREBOARD ---- */
+.scoreboard {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+.score-cell {
+  background: var(--surface);
+  padding: 16px 8px;
+  text-align: center;
+}
+.score-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 34px;
+  line-height: 1;
+  color: var(--accent);
+  transition: color 0.3s;
+}
+.score-num.negative { color: var(--danger); }
+.score-num.neutral { color: var(--muted); }
+.score-label {
+  font-size: 10px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin-top: 3px;
+}
+
+/* ---- PROGRESS ---- */
+.progress-section { padding: 16px 20px 4px; }
+.progress-header {
+  display: flex; justify-content: space-between;
+  font-size: 11px; color: var(--muted); margin-bottom: 6px;
+}
+.progress-wrap { position: relative; }
+.progress-bar {
+  height: 8px; background: var(--surface2);
+  border-radius: 4px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent2) 100%);
+  border-radius: 4px;
+  transition: width 0.5s cubic-bezier(.22,.68,0,1.2);
+  position: relative;
+}
+.progress-fill::after {
+  content: '';
+  position: absolute; right: 0; top: -3px;
+  width: 14px; height: 14px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--accent2);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.progress-fill.moving::after { opacity: 1; }
+
+.progress-label {
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+.progress-label strong { color: var(--accent); }
+
+/* ---- CHIPS ---- */
+.chips-row {
+  display: flex; gap: 7px;
+  padding: 10px 20px 4px;
+  overflow-x: auto; scrollbar-width: none;
+  flex-shrink: 0;
+}
+.chips-row::-webkit-scrollbar { display: none; }
+.chip {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 5px 11px;
+  font-size: 12px; white-space: nowrap;
+  display: flex; align-items: center; gap: 4px;
+}
+
+/* ---- SECTION TITLE ---- */
+.section-head {
+  padding: 16px 20px 10px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 17px; letter-spacing: 1px;
+  color: var(--muted);
+  display: flex; justify-content: space-between; align-items: center;
+}
+
+/* ---- ACTIVITY GRID ---- */
+.activity-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; padding: 0 20px 12px;
+}
+.act-btn {
+  background: var(--surface2); border: 2px solid var(--border);
+  color: var(--text); border-radius: 14px;
+  padding: 16px 10px; cursor: pointer;
+  transition: all 0.15s;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  font-family: 'DM Sans', sans-serif;
+  position: relative; overflow: hidden;
+}
+.act-btn:active { transform: scale(0.96); }
+.act-btn.selected {
+  border-color: var(--accent);
+  background: rgba(200,241,53,0.08);
+}
+.act-btn .act-icon { font-size: 26px; }
+.act-btn .act-name { font-size: 13px; font-weight: 600; }
+.act-btn .act-price { font-size: 11px; color: var(--muted); }
+.act-btn .act-check {
+  position: absolute; top: 8px; right: 10px;
+  font-size: 14px; opacity: 0; transition: opacity 0.15s;
+}
+.act-btn.selected .act-check { opacity: 1; }
+
+/* ---- FORM FIELDS ---- */
+.form-row { padding: 0 20px 10px; }
+.field-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+.field-input {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); border-radius: 12px; padding: 12px 14px;
+  font-family: 'DM Sans', sans-serif; font-size: 15px; outline: none;
+  transition: border-color 0.15s;
+  color-scheme: dark;
+}
+.field-input:focus { border-color: var(--accent2); }
+.field-input::placeholder { color: var(--muted); }
+
+/* ---- SUBMIT ---- */
+.submit-wrap { padding: 4px 20px 16px; }
+.submit-btn {
+  width: 100%; background: var(--accent); color: #0d0d0f;
+  border: none; border-radius: 14px; padding: 15px;
+  font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 1.5px;
+  cursor: pointer; transition: all 0.15s;
+}
+.submit-btn:active { transform: scale(0.98); opacity: 0.9; }
+.submit-btn:disabled { opacity: 0.25; cursor: not-allowed; transform: none; }
+
+/* ---- LOG ---- */
+.log-list { padding: 0 20px; display: flex; flex-direction: column; gap: 8px; }
+.log-item {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 13px 14px;
+  display: flex; align-items: center; gap: 12px;
+  animation: fadeSlide 0.25s ease;
+}
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.li-icon { font-size: 24px; width: 34px; text-align: center; flex-shrink: 0; }
+.li-info { flex: 1; min-width: 0; }
+.li-name { font-size: 14px; font-weight: 500; }
+.li-meta { font-size: 12px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.li-amount {
+  font-family: 'Bebas Neue', sans-serif; font-size: 20px;
+  color: var(--accent); flex-shrink: 0;
+}
+.li-del {
+  background: none; border: none; color: var(--muted);
+  cursor: pointer; font-size: 16px; padding: 6px;
+  border-radius: 8px; flex-shrink: 0;
+  transition: color 0.15s;
+}
+.li-del:active { color: var(--danger); }
+.empty-state {
+  text-align: center; color: var(--muted);
+  padding: 40px 20px;
+}
+.empty-state .emoji { font-size: 44px; margin-bottom: 10px; }
+.empty-state p { font-size: 14px; line-height: 1.5; }
+
+/* ---- BOTTOM NAV ---- */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  padding-bottom: var(--safe-bottom);
+  z-index: 100;
+}
+.nav-btn {
+  flex: 1; background: none; border: none;
+  color: var(--muted); cursor: pointer;
+  padding: 12px 8px 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  transition: color 0.15s; font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+}
+.nav-btn .nav-icon { font-size: 22px; line-height: 1; }
+.nav-btn.active { color: var(--accent); }
+
+/* ---- SETTINGS SCREEN ---- */
+.settings-content { padding: 20px; }
+.settings-group {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; overflow: hidden; margin-bottom: 16px;
+}
+.settings-group-title {
+  padding: 12px 16px 8px;
+  font-size: 11px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+}
+.settings-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.settings-row:last-child { border-bottom: none; }
+.settings-row-label { font-size: 14px; }
+.settings-row-input {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); border-radius: 10px; padding: 7px 12px;
+  font-family: 'DM Sans', sans-serif; font-size: 14px;
+  outline: none; width: 110px; text-align: right;
+  transition: border-color 0.15s;
+}
+.settings-row-input:focus { border-color: var(--accent2); }
+.settings-save-btn {
+  width: 100%; background: var(--accent2); color: #0d0d0f;
+  border: none; border-radius: 14px; padding: 14px;
+  font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 1px;
+  cursor: pointer; margin-bottom: 12px;
+  transition: opacity 0.15s;
+}
+.settings-save-btn:active { opacity: 0.85; }
+
+/* ---- BACKUP SECTION ---- */
+.backup-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.backup-btn {
+  width: 100%; padding: 14px;
+  border-radius: 14px; border: 2px solid var(--border);
+  font-family: 'Bebas Neue', sans-serif; font-size: 17px; letter-spacing: 1px;
+  cursor: pointer; background: var(--surface2); color: var(--text);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: all 0.15s;
+}
+.backup-btn:active { transform: scale(0.98); }
+.backup-btn.export { border-color: var(--accent); color: var(--accent); }
+.backup-btn.import { border-color: var(--accent2); color: var(--accent2); }
+.backup-btn.danger { border-color: var(--danger); color: var(--danger); }
+.backup-note { font-size: 12px; color: var(--muted); text-align: center; line-height: 1.5; }
+
+/* ---- STATS SCREEN ---- */
+.stats-content { padding: 20px; }
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; padding: 16px; margin-bottom: 12px;
+}
+.stat-card-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+.stat-big {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 42px; line-height: 1; color: var(--accent);
+}
+.stat-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.stat-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.stat-row:last-child { border-bottom: none; }
+.stat-row-label { font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.stat-row-val { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: var(--accent); }
+
+/* ---- TOAST ---- */
+.toast {
+  position: fixed; bottom: 80px; left: 50%;
+  transform: translateX(-50%) translateY(30px);
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text); padding: 11px 20px;
+  border-radius: 20px; font-size: 14px; font-weight: 500;
+  transition: all 0.3s cubic-bezier(.22,.68,0,1.2);
+  z-index: 999; white-space: nowrap; opacity: 0;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+/* ---- DIVIDER ---- */
+hr { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+
+/* ---- MODAL ---- */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  z-index: 200; display: flex; align-items: flex-end;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal-box {
+  background: var(--surface); border-radius: 20px 20px 0 0;
+  padding: 24px 24px calc(24px + var(--safe-bottom));
+  width: 100%; border-top: 1px solid var(--border);
+  transform: translateY(100%); transition: transform 0.3s cubic-bezier(.22,.68,0,1.2);
+}
+.modal-overlay.open .modal-box { transform: translateY(0); }
+.modal-title { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 1px; margin-bottom: 8px; }
+.modal-text { font-size: 14px; color: var(--muted); margin-bottom: 20px; line-height: 1.5; }
+.modal-btns { display: flex; gap: 10px; }
+.modal-btn {
+  flex: 1; padding: 13px; border-radius: 12px; border: none;
+  font-family: 'Bebas Neue', sans-serif; font-size: 17px; letter-spacing: 1px;
+  cursor: pointer; transition: opacity 0.15s;
+}
+.modal-btn:active { opacity: 0.8; }
+.modal-btn.cancel { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.modal-btn.confirm { background: var(--danger); color: white; }
+</style>
+</head>
+<body>
+
+<!-- ===== HOME SCREEN ===== -->
+<div class="screen active" id="screen-home">
+  <header>
+    <div class="logo">Multi<span>Sport</span></div>
+    <div class="month-nav">
+      <button onclick="changeMonth(-1)">‹</button>
+      <div class="month-label" id="monthLabel"></div>
+      <button onclick="changeMonth(1)">›</button>
+    </div>
+  </header>
+
+  <div class="scoreboard" id="scoreboard">
+    <div class="score-cell">
+      <div class="score-num neutral" id="sc-visits">0</div>
+      <div class="score-label">Návštěvy</div>
+    </div>
+    <div class="score-cell">
+      <div class="score-num" id="sc-saved">0 Kč</div>
+      <div class="score-label">Hodnota</div>
+    </div>
+    <div class="score-cell">
+      <div class="score-num neutral" id="sc-balance">—</div>
+      <div class="score-label">Bilance</div>
+    </div>
+  </div>
+
+  <div class="progress-section">
+    <div class="progress-header">
+      <span>0 Kč</span>
+      <span id="progress-pct">0%</span>
+      <span id="progress-max"></span>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+    <div class="progress-label" id="progress-label"></div>
+  </div>
+
+  <div class="chips-row" id="chips-row"></div>
+
+  <div class="scroll-area">
+    <div class="section-head">Přidat návštěvu</div>
+
+    <div class="activity-grid" id="act-grid">
+      <button class="act-btn" data-type="fitness" onclick="selectAct(this)">
+        <span class="act-check">✓</span>
+        <span class="act-icon">🏋️</span>
+        <span class="act-name">Fitness</span>
+        <span class="act-price" id="ap-fitness">150 Kč</span>
+      </button>
+      <button class="act-btn" data-type="swim" onclick="selectAct(this)">
+        <span class="act-check">✓</span>
+        <span class="act-icon">🏊</span>
+        <span class="act-name">Plavání</span>
+        <span class="act-price" id="ap-swim">120 Kč</span>
+      </button>
+      <button class="act-btn" data-type="badminton" onclick="selectAct(this)">
+        <span class="act-check">✓</span>
+        <span class="act-icon">🏸</span>
+        <span class="act-name">Badminton</span>
+        <span class="act-price" id="ap-badminton">180 Kč</span>
+      </button>
+      <button class="act-btn" data-type="sauna" onclick="selectAct(this)">
+        <span class="act-check">✓</span>
+        <span class="act-icon">🧖</span>
+        <span class="act-name">Sauna</span>
+        <span class="act-price" id="ap-sauna">200 Kč</span>
+      </button>
+    </div>
+
+    <div class="form-row">
+      <div class="field-label">Datum</div>
+      <input class="field-input" type="date" id="visit-date" color-scheme="dark">
+    </div>
+    <div class="form-row">
+      <input class="field-input" type="text" id="visit-note" placeholder="Poznámka (volitelné)">
+    </div>
+    <div class="submit-wrap">
+      <button class="submit-btn" id="submit-btn" onclick="addVisit()" disabled>PŘIDAT NÁVŠTĚVU</button>
+    </div>
+
+    <hr>
+
+    <div class="section-head">
+      <span id="log-title">Historie</span>
+    </div>
+    <div class="log-list" id="log-list"></div>
+  </div>
+</div>
+
+<!-- ===== STATS SCREEN ===== -->
+<div class="screen" id="screen-stats">
+  <header>
+    <div class="logo">Multi<span>Stats</span></div>
+  </header>
+  <div class="scroll-area">
+    <div class="stats-content" id="stats-content"></div>
+  </div>
+</div>
+
+<!-- ===== SETTINGS SCREEN ===== -->
+<div class="screen" id="screen-settings">
+  <header>
+    <div class="logo">Multi<span>Nastavení</span></div>
+  </header>
+  <div class="scroll-area">
+    <div class="settings-content">
+
+      <div class="settings-group">
+        <div class="settings-group-title">Karta</div>
+        <div class="settings-row">
+          <div class="settings-row-label">Cena karty / měsíc</div>
+          <input class="settings-row-input" type="number" id="s-card" value="840"> 
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-label">Příspěvek zaměstnavatele</div>
+          <input class="settings-row-input" type="number" id="s-employer" value="350">
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-group-title">Průměrné ceny vstupů (Kč)</div>
+        <div class="settings-row">
+          <div class="settings-row-label">🏋️ Fitness</div>
+          <input class="settings-row-input" type="number" id="s-fitness" value="150">
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-label">🏊 Plavání</div>
+          <input class="settings-row-input" type="number" id="s-swim" value="120">
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-label">🏸 Badminton</div>
+          <input class="settings-row-input" type="number" id="s-badminton" value="180">
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-label">🧖 Sauna</div>
+          <input class="settings-row-input" type="number" id="s-sauna" value="200">
+        </div>
+      </div>
+
+      <button class="settings-save-btn" onclick="saveSettings()">ULOŽIT NASTAVENÍ</button>
+
+      <div class="settings-group">
+        <div class="settings-group-title">Záloha dat</div>
+        <div class="settings-row" style="flex-direction:column; align-items:stretch; gap:10px; padding:14px 16px;">
+          <button class="backup-btn export" onclick="exportData()">📤 EXPORTOVAT ZÁLOHU (.JSON)</button>
+          <button class="backup-btn import" onclick="document.getElementById('import-file').click()">📥 OBNOVIT ZE ZÁLOHY</button>
+          <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+          <p class="backup-note">Export uloží soubor do iCloudu / Stažených souborů.<br>Zálohy si dělej před vymazáním dat prohlížeče.</p>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-group-title">Nebezpečná zóna</div>
+        <div class="settings-row" style="flex-direction:column; align-items:stretch; padding:14px 16px;">
+          <button class="backup-btn danger" onclick="confirmClear()">🗑 SMAZAT VŠECHNA DATA</button>
+        </div>
+      </div>
+
+      <div style="text-align:center; color: var(--muted); font-size: 12px; padding: 8px 0 4px;">
+        MultiSport Tracker · v1.0
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== BOTTOM NAV ===== -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="nav-home" onclick="showScreen('home')">
+    <span class="nav-icon">🏠</span>
+    Přehled
+  </button>
+  <button class="nav-btn" id="nav-stats" onclick="showScreen('stats')">
+    <span class="nav-icon">📊</span>
+    Statistiky
+  </button>
+  <button class="nav-btn" id="nav-settings" onclick="showScreen('settings')">
+    <span class="nav-icon">⚙️</span>
+    Nastavení
+  </button>
+</nav>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-text" id="modal-text"></div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeModal()">Zrušit</button>
+      <button class="modal-btn confirm" id="modal-confirm">Smazat</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// DATA & SETTINGS
+// ============================================================
+const MONTHS = ['Leden','Únor','Březen','Duben','Květen','Červen',
+                'Červenec','Srpen','Září','Říjen','Listopad','Prosinec'];
+const ACT = {
+  fitness:   { label: 'Fitness',   icon: '🏋️' },
+  swim:      { label: 'Plavání',   icon: '🏊' },
+  badminton: { label: 'Badminton', icon: '🏸' },
+  sauna:     { label: 'Sauna',     icon: '🧖' },
+};
+
+let S = JSON.parse(localStorage.getItem('ms_s') || 'null') || {
+  cardCost: 840, employer: 350,
+  prices: { fitness:150, swim:120, badminton:180, sauna:200 }
+};
+let visits = JSON.parse(localStorage.getItem('ms_v') || '[]');
+let selAct = null;
+
+const now = new Date();
+let vYear = now.getFullYear();
+let vMonth = now.getMonth();
+
+// ============================================================
+// SCREENS
+// ============================================================
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  if (name === 'stats') renderStats();
+  if (name === 'settings') loadSettingsForm();
+}
+
+// ============================================================
+// MONTH NAV
+// ============================================================
+function changeMonth(dir) {
+  vMonth += dir;
+  if (vMonth < 0)  { vMonth = 11; vYear--; }
+  if (vMonth > 11) { vMonth = 0;  vYear++; }
+  renderHome();
+}
+
+// ============================================================
+// SELECT ACTIVITY
+// ============================================================
+function selectAct(btn) {
+  document.querySelectorAll('.act-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selAct = btn.dataset.type;
+  document.getElementById('submit-btn').disabled = false;
+}
+
+// ============================================================
+// ADD VISIT
+// ============================================================
+function addVisit() {
+  if (!selAct) return;
+  const date = document.getElementById('visit-date').value || todayStr();
+  const note = document.getElementById('visit-note').value.trim();
+  visits.push({ id: Date.now(), type: selAct, date, note, price: S.prices[selAct] });
+  save();
+  document.getElementById('visit-note').value = '';
+  document.querySelectorAll('.act-btn').forEach(b => b.classList.remove('selected'));
+  selAct = null;
+  document.getElementById('submit-btn').disabled = true;
+  const d = new Date(date + 'T12:00:00');
+  vYear = d.getFullYear(); vMonth = d.getMonth();
+  renderHome();
+  toast('✅ ' + ACT[visits[visits.length-1].type].icon + ' Přidáno!');
+}
+
+// ============================================================
+// DELETE
+// ============================================================
+function delVisit(id) {
+  visits = visits.filter(v => v.id !== id);
+  save(); renderHome();
+  toast('🗑 Smazáno');
+}
+
+// ============================================================
+// RENDER HOME
+// ============================================================
+function renderHome() {
+  const mv = visits.filter(v => {
+    const d = new Date(v.date + 'T12:00:00');
+    return d.getFullYear() === vYear && d.getMonth() === vMonth;
+  });
+  const myShare = S.cardCost - S.employer;
+  const totalVal = mv.reduce((s, v) => s + v.price, 0);
+  const balance = totalVal - myShare;
+  const pct = myShare > 0 ? Math.min(100, Math.round((totalVal / myShare) * 100)) : 0;
+
+  document.getElementById('monthLabel').textContent = MONTHS[vMonth] + ' ' + vYear;
+  document.getElementById('sc-visits').textContent = mv.length;
+  document.getElementById('sc-visits').className = 'score-num' + (mv.length > 0 ? '' : ' neutral');
+  document.getElementById('sc-saved').textContent = totalVal + ' Kč';
+  const balEl = document.getElementById('sc-balance');
+  if (mv.length === 0) {
+    balEl.textContent = '—'; balEl.className = 'score-num neutral';
+  } else {
+    balEl.textContent = (balance >= 0 ? '+' : '') + balance + ' Kč';
+    balEl.className = 'score-num' + (balance >= 0 ? '' : ' negative');
+  }
+
+  document.getElementById('progress-max').textContent = myShare + ' Kč';
+  document.getElementById('progress-pct').textContent = pct + '%';
+  const fill = document.getElementById('progress-fill');
+  fill.style.width = pct + '%';
+  fill.classList.add('moving');
+  setTimeout(() => fill.classList.remove('moving'), 600);
+
+  const remaining = myShare - totalVal;
+  if (balance >= 0) {
+    document.getElementById('progress-label').innerHTML = `<strong>🎉 V plusu o ${balance} Kč!</strong>`;
+  } else {
+    const needed = Math.ceil(remaining / Math.max(...Object.values(S.prices)));
+    document.getElementById('progress-label').innerHTML = `Chybí ${remaining} Kč · ještě cca <strong>${Math.ceil(remaining / (totalVal/Math.max(mv.length,1)))} návštěv</strong>`;
+    if (mv.length === 0) document.getElementById('progress-label').textContent = `Cena karty: ${myShare} Kč`;
+  }
+
+  // chips
+  const types = {};
+  mv.forEach(v => { types[v.type] = (types[v.type]||0)+1; });
+  document.getElementById('chips-row').innerHTML = Object.entries(types).map(([t,c]) =>
+    `<div class="chip">${ACT[t].icon} ${ACT[t].label}: ${c}×</div>`
+  ).join('') || `<div class="chip" style="color:var(--muted)">Žádné aktivity</div>`;
+
+  // log
+  document.getElementById('log-title').textContent = 'Historie — ' + MONTHS[vMonth];
+  const sorted = [...mv].sort((a,b) => b.date.localeCompare(a.date));
+  document.getElementById('log-list').innerHTML = sorted.length === 0
+    ? `<div class="empty-state"><div class="emoji">🏃</div><p>Žádné návštěvy v ${MONTHS[vMonth]}u.<br>Přidej první!</p></div>`
+    : sorted.map(v => {
+        const d = new Date(v.date + 'T12:00:00');
+        const ds = d.getDate() + '. ' + (d.getMonth()+1) + '. ' + d.getFullYear();
+        return `<div class="log-item">
+          <div class="li-icon">${ACT[v.type].icon}</div>
+          <div class="li-info">
+            <div class="li-name">${ACT[v.type].label}${v.note ? ' · ' + v.note : ''}</div>
+            <div class="li-meta">${ds}</div>
+          </div>
+          <div class="li-amount">+${v.price} Kč</div>
+          <button class="li-del" onclick="delVisit(${v.id})">✕</button>
+        </div>`;
+      }).join('');
+
+  // Update price labels
+  ['fitness','swim','badminton','sauna'].forEach(t => {
+    const el = document.getElementById('ap-'+t);
+    if (el) el.textContent = S.prices[t] + ' Kč';
+  });
+}
+
+// ============================================================
+// RENDER STATS
+// ============================================================
+function renderStats() {
+  const myShare = S.cardCost - S.employer;
+  const allVal = visits.reduce((s,v) => s+v.price, 0);
+  const months = [...new Set(visits.map(v => v.date.slice(0,7)))].sort();
+  const totalBalance = allVal - myShare * months.length;
+
+  // Per activity counts
+  const actCounts = {};
+  const actVal = {};
+  visits.forEach(v => {
+    actCounts[v.type] = (actCounts[v.type]||0)+1;
+    actVal[v.type] = (actVal[v.type]||0)+v.price;
+  });
+
+  // Monthly best
+  const monthData = {};
+  visits.forEach(v => {
+    const m = v.date.slice(0,7);
+    if (!monthData[m]) monthData[m] = { count:0, val:0 };
+    monthData[m].count++;
+    monthData[m].val += v.price;
+  });
+  const bestMonth = Object.entries(monthData).sort((a,b) => b[1].val - a[1].val)[0];
+
+  let html = `
+    <div class="stat-card">
+      <div class="stat-card-title">Celkem za všechnu dobu</div>
+      <div class="stat-big">${allVal} Kč</div>
+      <div class="stat-sub">hodnota ${visits.length} návštěv</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-card-title">Celková bilance (${months.length} měs.)</div>
+      <div class="stat-big" style="color:${totalBalance>=0?'var(--accent)':'var(--danger)'}">${totalBalance>=0?'+':''}${totalBalance} Kč</div>
+      <div class="stat-sub">po odečtení ${myShare} Kč/měs · zaplaceno celkem ${myShare*months.length} Kč</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-card-title">Aktivity</div>
+      ${Object.entries(actCounts).sort((a,b)=>b[1]-a[1]).map(([t,c]) => `
+        <div class="stat-row">
+          <div class="stat-row-label">${ACT[t].icon} ${ACT[t].label}</div>
+          <div style="text-align:right">
+            <div class="stat-row-val">${c}×</div>
+            <div style="font-size:11px;color:var(--muted)">${actVal[t]} Kč</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+
+  if (bestMonth) {
+    const [y,m] = bestMonth[0].split('-');
+    html += `
+      <div class="stat-card">
+        <div class="stat-card-title">Nejlepší měsíc</div>
+        <div class="stat-big">${MONTHS[parseInt(m)-1]}</div>
+        <div class="stat-sub">${bestMonth[1].count} návštěv · ${bestMonth[1].val} Kč hodnota</div>
+      </div>`;
+  }
+
+  if (visits.length === 0) {
+    html = `<div class="empty-state"><div class="emoji">📊</div><p>Zatím žádná data.<br>Přidej první návštěvu!</p></div>`;
+  }
+
+  document.getElementById('stats-content').innerHTML = html;
+}
+
+// ============================================================
+// SETTINGS
+// ============================================================
+function loadSettingsForm() {
+  document.getElementById('s-card').value = S.cardCost;
+  document.getElementById('s-employer').value = S.employer;
+  document.getElementById('s-fitness').value = S.prices.fitness;
+  document.getElementById('s-swim').value = S.prices.swim;
+  document.getElementById('s-badminton').value = S.prices.badminton;
+  document.getElementById('s-sauna').value = S.prices.sauna;
+}
+
+function saveSettings() {
+  S.cardCost  = parseInt(document.getElementById('s-card').value)||840;
+  S.employer  = parseInt(document.getElementById('s-employer').value)||0;
+  S.prices.fitness   = parseInt(document.getElementById('s-fitness').value)||150;
+  S.prices.swim      = parseInt(document.getElementById('s-swim').value)||120;
+  S.prices.badminton = parseInt(document.getElementById('s-badminton').value)||180;
+  S.prices.sauna     = parseInt(document.getElementById('s-sauna').value)||200;
+  save();
+  renderHome();
+  toast('✅ Nastavení uloženo');
+}
+
+// ============================================================
+// BACKUP
+// ============================================================
+function exportData() {
+  const data = { version:1, exported: new Date().toISOString(), settings:S, visits };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'multisport-zaloha-' + todayStr() + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('📤 Záloha exportována');
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data.visits) throw new Error('Neplatný soubor');
+      visits = data.visits;
+      if (data.settings) S = data.settings;
+      save();
+      renderHome();
+      loadSettingsForm();
+      toast('📥 Data obnovena · ' + visits.length + ' návštěv');
+    } catch {
+      toast('❌ Chyba: neplatný soubor zálohy');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ============================================================
+// CLEAR DATA
+// ============================================================
+function confirmClear() {
+  document.getElementById('modal-title').textContent = 'Smazat všechna data?';
+  document.getElementById('modal-text').textContent = 'Tato akce je nevratná. Všechny návštěvy budou smazány. Nejprve si udělej zálohu!';
+  document.getElementById('modal-confirm').onclick = () => { clearAll(); closeModal(); };
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+function clearAll() {
+  visits = [];
+  save(); renderHome();
+  toast('🗑 Všechna data smazána');
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function save() {
+  localStorage.setItem('ms_v', JSON.stringify(visits));
+  localStorage.setItem('ms_s', JSON.stringify(S));
+}
+function todayStr() {
+  return new Date().toISOString().split('T')[0];
+}
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+// Close modal on overlay click
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ============================================================
+// INIT
+// ============================================================
+document.getElementById('visit-date').value = todayStr();
+renderHome();
+
+// Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
